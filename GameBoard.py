@@ -54,7 +54,9 @@ class HexagonesBoard:
 
     def correspond_joueur(self, joueur):
         #Teste si le joueur à poser un pion sur cette case
-        return self.etat_couleur == joueur
+        if self.etat_couleur==joueur:
+            return True
+        return False
 
 
 class HexBoard:
@@ -103,20 +105,13 @@ class HexBoard:
     
     def trouver_chemin(self, joueur, indice):
         #Recherche d'un chemin à partir des coordonnées d'un point
-        i, j = indice[0], indice[1]
-        print(i, j)
-        test_sommet = self.est_sommet_de(indice, self.val_joueur(joueur))
-        if self.est_sommet((i, j)) and test_sommet[0]:
-            val_rech = test_sommet[1]
-            trouver = False
-            for ind in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
-                if ind != indice and self.indice_valide(ind):
-                    trouver = trouver or self.recherche_chemin(ind, indice, val_rech, joueur)
-            if trouver:
-                self.etat = 0
-            return trouver
-        else:
-            return False
+        liste_s = set()
+        liste_s = self.recherche_sommets(indice, joueur, liste_s, None)
+        if len(liste_s)==2:
+            self.etat = 0
+            return True
+        return False
+
 
     def indice_sommet(self, indice):
         """
@@ -140,15 +135,34 @@ class HexBoard:
             return ()
 
     def est_sommet_de(self, indice, joueur):
-        """Cette methode évalu si un sommet est celui d'un joueur et retourne l'indice du cote à rechercher"""
-        cote = joueur
-        sommet_joueur = False
-        if cote in self.indice_sommet(indice) :
-            return True, -1*cote
-        elif -1*cote in self.indice_sommet(indice):
-            return  True, cote
-        else:
-            return (False,)
+        """
+        Cette methode évalu si un sommet est celui d'un 
+        joueur et retourne l'indice du cote à rechercher
+        """
+        i, j = indice[0], indice[1]
+        if i==0 :
+            if joueur==1:
+                return True, 1
+        if i==self.taille-1 :
+            if joueur==1:
+                return True, -1
+        if j==0 :
+            if joueur==2:
+                return True, 2
+        if j==self.taille-1:
+            if joueur==2:
+                return True, -2
+        return (False,)
+
+    def sommet_joueur(self, indice, joueur):
+        """
+        Cette methode retourne le type de sommet correspondant à un joueur
+        """
+        t_sommet = self.indice_sommet(indice)
+        if joueur in t_sommet:
+            return joueur
+        if -1*joueur in t_sommet:
+            return -1*joueur    
 
     def est_sommet(self, indice):
         """
@@ -157,28 +171,29 @@ class HexBoard:
         i, j = indice[0], indice[1]
         return i==0 or j==0 or i==self.taille-1 or j==self.taille-1
 
-    def recherche_chemin(self, id_courant, id_exclut, val_rech, joueur):
+    def recherche_sommets(self, id_courant, joueur, liste_sommet, id_exclut):
         """
-        Cette methode recherche un chemin de facon recursif 
+        Cette methode recherche les sommets à partir d'une position de facon recursive
         """
         i, j = id_courant[0], id_courant[1]
-        if self.est_sommet((i, j)):
-            if self.hexagones[i][j].correspond_joueur(joueur):
-                print(self.indice_sommet((i, j)))
-                if val_rech in self.indice_sommet((i, j)):
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        elif self.hexagones[i][j].correspond_joueur(joueur):
-            trouver = False
+        if self.hexagones[i][j].couleur()==joueur:
+            sommet = self.est_sommet_de(id_courant, joueur)
+            if sommet[0] :
+                sommet = sommet[1]
+                if not (sommet in liste_sommet):
+                    print(sommet)
+                    liste_sommet.add(sommet)
+                    if len(liste_sommet)==2:
+                        return liste_sommet
             for indice in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
                 if indice != id_exclut and self.indice_valide(indice):
-                    trouver = trouver or self.recherche_chemin(indice, id_courant, val_rech, joueur)
-            return trouver
-        else:
-            return False
+                    if self.hexagones[indice[0]][indice[1]].couleur()==joueur:
+                        liste_s = self.recherche_sommets(indice, joueur, liste_sommet, id_courant)
+                        print("Recursion----------")
+                        if len(liste_sommet) < len(liste_s):
+                            liste_sommet = liste_s
+            return liste_sommet
+        return liste_sommet
 
     def val_joueur(self, joueur):
         #Attribut une valeur à un joueur 
