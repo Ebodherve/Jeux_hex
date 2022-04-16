@@ -175,7 +175,8 @@ class HexBoard:
             trouver = False
             for indice in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
                 if indice != id_exclut and self.indice_valide(indice):
-                    trouver = trouver or self.recherche_chemin(indice, id_courant, val_rech, joueur)
+                    if self.hexagones[indice[0]][indice[1]].correspond_joueur(joueur):
+                        trouver = trouver or self.recherche_chemin(indice, id_courant, val_rech, joueur)
             return trouver
         else:
             return False
