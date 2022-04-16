@@ -104,6 +104,7 @@ class HexBoard:
     def trouver_chemin(self, joueur, indice):
         #Recherche d'un chemin à partir des coordonnées d'un point
         i, j = indice[0], indice[1]
+        print(i, j)
         test_sommet = self.est_sommet_de(indice, self.val_joueur(joueur))
         if self.est_sommet((i, j)) and test_sommet[0]:
             val_rech = test_sommet[1]
@@ -163,6 +164,7 @@ class HexBoard:
         i, j = id_courant[0], id_courant[1]
         if self.est_sommet((i, j)):
             if self.hexagones[i][j].correspond_joueur(joueur):
+                print(self.indice_sommet((i, j)))
                 if val_rech in self.indice_sommet((i, j)):
                     return True
                 else:
