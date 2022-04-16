@@ -46,6 +46,7 @@ class HexagonesBoard:
     def colorier(self, couleur):
         #L'hexagone se colorie
         self.etat_couleur = couleur
+        return True
 
     def couleur(self):
         #retourne la couleur de l'hexagone
@@ -58,11 +59,11 @@ class HexagonesBoard:
 
 class HexBoard:
 
-    def __init__(self, taille=14, rayon_hex=30, token=None):
+    def __init__(self, taille=14, rayon_hex=30, token=1, etat=1):
         self.rayon_sommet = rayon_hex
         self.taille = taille
         #deux etats -> 1 : encour, 0: fin 
-        self.etat = None 
+        self.etat = etat
         self.token = token
         self.hexagones = [[] for i in range(taille)]
         self.joueur1 = 1
@@ -89,27 +90,29 @@ class HexBoard:
 
     #Fonction permettant de verifier si les coordonnées x et y sont valides
     def isValide(self, coord, joueur):
-        if self.token == joueur:
+        if self.token == joueur and self.etat:
             for i in range(self.taille):
                 for j in range(self.taille) :
                     h = self.hexagones[i][j]
                     if h.est_dans_rayon(coord):
                         if h.peut_se_colorier():
-                            h.colorier(self.token)
-                            return h.peut_se_colorier(), i, j
+                            return h.colorier(self.token), i, j
                         else:
                             return (False,)
         return (False,)
     
-    def recherche_chemin(self, joueur, indice):
+    def trouver_chemin(self, joueur, indice):
         #Recherche d'un chemin à partir des coordonnées d'un point
         i, j = indice[0], indice[1]
-        if est_sommet(i, j):
-            val_rech = -1*self.val_joueur(joueur) 
+        test_sommet = self.est_sommet_de(indice, self.val_joueur(joueur))
+        if self.est_sommet((i, j)) and test_sommet[0]:
+            val_rech = test_sommet[1]
             trouver = False
             for ind in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
-                if ind != indice:
-                    trouver = trouver or rechercher(ind, indice, val_rech, joueur)
+                if ind != indice and self.indice_valide(ind):
+                    trouver = trouver or self.recherche_chemin(ind, indice, val_rech, joueur)
+            if trouver:
+                self.etat = 0
             return trouver
         else:
             return False
@@ -135,6 +138,17 @@ class HexBoard:
         else :
             return ()
 
+    def est_sommet_de(self, indice, joueur):
+        """Cette methode évalu si un sommet est celui d'un joueur et retourne l'indice du cote à rechercher"""
+        cote = joueur
+        sommet_joueur = False
+        if cote in self.indice_sommet(indice) :
+            return True, -1*cote
+        elif -1*cote in self.indice_sommet(indice):
+            return  True, cote
+        else:
+            return (False,)
+
     def est_sommet(self, indice):
         """
         Cette methode evalue si deux indices correspondent à celles d'un sommet
@@ -142,31 +156,37 @@ class HexBoard:
         i, j = indice[0], indice[1]
         return i==0 or j==0 or i==self.taille-1 or j==self.taille-1
 
-    def rechercher(self, id_courant, id_exclut, val_rech, joueur):
+    def recherche_chemin(self, id_courant, id_exclut, val_rech, joueur):
         """
         Cette methode recherche un chemin de facon recursif 
         """
         i, j = id_courant[0], id_courant[1]
-        if self.est_sommet(i, j):
-            if self.hexagones.correspond_joueur(joueur):
-                if val_rech in indice_sommet(i, j):
+        if self.est_sommet((i, j)):
+            if self.hexagones[i][j].correspond_joueur(joueur):
+                if val_rech in self.indice_sommet((i, j)):
                     return True
                 else:
                     return False
             else:
                 return False
-        elif self.hexagones.correspond_joueur(joueur):
+        elif self.hexagones[i][j].correspond_joueur(joueur):
             trouver = False
             for indice in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
-                if indice != id_exclut:
-                    trouver = trouver or self.rechercher(indice, id_courant, val_rech, joueur)
+                if indice != id_exclut and self.indice_valide(indice):
+                    trouver = trouver or self.recherche_chemin(indice, id_courant, val_rech, joueur)
             return trouver
         else:
             return False
 
     def val_joueur(self, joueur):
         #Attribut une valeur à un joueur 
-        return joueur         
+        return joueur
+
+    def indice_valide(self, ind):
+        valide = True
+        for i in ind:
+            valide = valide and i>=0 and i<self.taille
+        return valide
 
 
 

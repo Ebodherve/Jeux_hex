@@ -15,11 +15,14 @@ class Point:
 
     # tracer un hexagone sur le canvas
     def tracerHexagone(self,p1,p2,p3,p4,p5,canvas):
-        return canvas.create_polygon(self.x,self.y, p1.x, p1.y, p2.x, p2.y, p3.x,p3.y, p4.x,p4.y, p5.x,p5.y,fill= "white", outline='black')
+        canvas.create_polygon(self.x,self.y, p1.x, p1.y, p2.x, p2.y, p3.x,p3.y, p4.x,p4.y, p5.x,p5.y,fill= "white", outline='black')
 
     # tracer un cercle d'un certain rayon et d'une certaine couleur sur le canvas
     def tracerCercle(self,r,couleur,canvas,hover=''):
         canvas.create_oval(self.x-r,self.y-r,self.x+r,self.y+r,fill=couleur,outline='',activefill=hover)
+
+    def tracer_ligne(self, p, couleur, canvas):
+        canvas.create_line(self.x, self.y, p.x, p.y, fill=couleur)
 
 
 class HexagoneView:
@@ -48,8 +51,21 @@ class HexagoneView:
         # cree un cercle qui s'affiche quand l'Hexqagone est survole
         self.centre.tracerCercle(self.rayon_cercle,'',canvas,'#ddd')
 
-    def afficher(self):
-        pass
+    def colori_bordure_dessus(self, couleur, canvas):
+        self.points[2].tracer_ligne(self.points[3], couleur, canvas)
+        self.points[3].tracer_ligne(self.points[4], couleur, canvas)
+
+    def colori_bordure_dessous(self, couleur, canvas):
+        self.points[-1].tracer_ligne(self.points[0], couleur, canvas)
+        self.points[0].tracer_ligne(self.points[1], couleur, canvas)
+
+    def colori_bordure_gauche(self, couleur, canvas):
+        self.points[0].tracer_ligne(self.points[1], couleur, canvas)
+        self.points[1].tracer_ligne(self.points[2], couleur, canvas)
+
+    def colori_bordure_droite(self, couleur, canvas):
+        self.points[3].tracer_ligne(self.points[4], couleur, canvas)
+        self.points[4].tracer_ligne(self.points[5], couleur, canvas)
 
 
 class HexView:
@@ -60,6 +76,8 @@ class HexView:
         self.hexboard = HexBoard(taille=taille, rayon_hex=rayon_hex)
         self.rayon_hex = rayon_hex
         self.canvas = canvas
+        self.joueur1 = "blue"
+        self.joueur2 = "red"
         self.construire_grille()
 
     def construire_grille(self):
@@ -71,9 +89,17 @@ class HexView:
                 self.hexagones[i].append(HexagoneView(rayon_cercle=self.rayon_hex, centre=centre))
 
     def afficher_grille(self):
+        couleur1 = "blue"
+        couleur2 = "red"
         for ligne in self.hexagones:
             for h in ligne :
                 h.dessiner(self.canvas)
+        #coloriage des bordures
+        for i in range(self.taille):
+            self.hexagones[0][i].colori_bordure_dessus(couleur1, self.canvas)
+            self.hexagones[self.taille-1][i].colori_bordure_dessous(couleur1, self.canvas)
+            self.hexagones[i][0].colori_bordure_gauche(couleur2, self.canvas)
+            self.hexagones[i][self.taille-1].colori_bordure_droite(couleur2, self.canvas)
 
     #Connection à la grille
     def setboard(self, hexboard):
@@ -81,14 +107,23 @@ class HexView:
 
     #Affichage de la grille
     def demmarrage(self):
-        self.canvas.bind("<Button-1>",self.jouer)
+        self.canvas.bind("<Button-1>",self.jouer_clic)
 
-    def jouer(self, event):
+    def jouer_clic(self, event):
+        joueur = 1
         x, y = event.x, event.y
-        valide = self.hexboard.isValide((x, y), None)
+        valide = self.hexboard.isValide((x, y), joueur)
         if valide[0]:
             i, j = valide[1], valide[2]
-            self.hexagones[i][j].colorier("red", self.canvas)
+            self.jouer((i, j), joueur)
+
+    def jouer(self, ind, joueur):
+        i, j = ind
+        couleur = "red"
+        self.hexagones[i][j].colorier(couleur, self.canvas)
+        trouver = self.hexboard.trouver_chemin(joueur, ind)
+        if trouver :
+            print(f"Le joueur {joueur} a gagné")
 
 
 
