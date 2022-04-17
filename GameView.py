@@ -1,7 +1,9 @@
 from math import cos, sin, radians
 from tkinter import Tk, Canvas
+import os
 
 from GameBoard import *
+from Joueurs import *
 
 
 class Point:
@@ -73,11 +75,13 @@ class HexView:
     def __init__(self, canvas=None, taille=14, rayon_hex=20):
         self.taille = taille
         self.hexagones = [[] for i in range(taille)]
-        self.hexboard = HexBoard(taille=taille, rayon_hex=rayon_hex)
+        self.hexboard = HexBoard(self,taille=taille, rayon_hex=rayon_hex)
         self.rayon_hex = rayon_hex
         self.canvas = canvas
         self.joueur1 = "blue"
         self.joueur2 = "red"
+        self.joueur_arriere = None
+        self.joueur_courant = self.joueur1
         self.construire_grille()
 
     def construire_grille(self):
@@ -107,25 +111,56 @@ class HexView:
 
     #Affichage de la grille
     def demmarrage(self):
+        #initialisation du joueur ia ou random
+        ja = self.joueur2
+        self.joueur_arriere = JoueurIa("Henri", 
+            self.hexboard, 
+            self.taille, 
+            couleur=self.interface_joueur_couleur(ja))
         self.canvas.bind("<Button-1>",self.jouer_clic)
 
     def jouer_clic(self, event):
-        joueur = 1
+        if self.joueur_arriere :
+            joueur = self.interface_joueur_couleur(self.joueur1)
+        else:
+            joueur = self.interface_joueur_couleur(self.joueur_courant)
         x, y = event.x, event.y
         valide = self.hexboard.isValide((x, y), joueur)
         if valide[0]:
             i, j = valide[1], valide[2]
             self.jouer((i, j), joueur)
+            self.test_joueur_arriere()
 
     def jouer(self, ind, joueur):
+        #os.system("clear")
         i, j = ind
-        couleur = "red"
+        couleur = self.interface_couleur_joueur(joueur)
         self.hexagones[i][j].colorier(couleur, self.canvas)
         trouver = self.hexboard.trouver_chemin(joueur, ind)
+        self.passer_la_main()
         if trouver :
             print(f"Le joueur {joueur} a gagné")
 
+    def interface_joueur_couleur(self, couleur):
+        return 1 if couleur==self.joueur1 else 2 
 
+    def interface_couleur_joueur(self, joueur):
+        return self.joueur1 if joueur==1 else self.joueur2
+
+    def passer_la_main(self):
+        if self.joueur_courant == self.joueur1:
+            self.joueur_courant = self.joueur2
+        else:
+            self.joueur_courant = self.joueur1
+
+    def test_joueur_arriere(self):
+        if self.joueur_arriere:
+            self.joueur_arriere.jouer()
+
+    def colorier_hex(self, ind, joueur):
+        i, j = ind
+        couleur = self.interface_couleur_joueur(joueur)
+        self.hexagones[i][j].colorier(couleur, self.canvas)
 
 
 if __name__=="__main__":
