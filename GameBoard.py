@@ -25,11 +25,14 @@ class JoueurRandom(Joueur):
 
 class HexagonesBoard:
 
-    def __init__(self, etat_couleur=None, taille=14, rayon=30, centre=(100, 100)):
+    def __init__(self, etat_couleur=None, taille_grille=14, rayon=30, centre=(100, 100), indice=(0,0)):
         self.etat_couleur = etat_couleur
-        self.taille = taille
+        self.taille = taille_grille
         self.rayon = rayon
         self.centre = centre
+        self.indice = indice
+        self.sommet = self.suis_je_sommet()
+        self.indices_frere_ignores = []
 
     def distance_centre(self, coord):
         #Calcule la distance d'un point au centre de l'hexagone
@@ -58,6 +61,62 @@ class HexagonesBoard:
             return True
         return False
 
+    def suis_je_sommet(self, taille=None):
+        """
+        Cette methode evalue si deux indices correspondent à celles d'un sommet
+        """
+        taille = taille if taille else self.taille
+        i, j = self.indice[0], self.indice[1]
+        if i==0:
+            return True, 1
+        elif i==taille-1:
+            return True, -1
+        elif j==0:
+            return True, 2
+        elif j==taille-1:
+            return True, -2
+        else:
+            return (False,)
+
+    def est_sommet(self):
+        return self.sommet[0]
+
+    def est_sommet_joueur(self, joueur):
+        return self.sommet[0] and self.correspond_joueur(joueur)
+
+    def couleur_sommet(self, taille=None):
+        i,j = self.indice
+        taille = taille if taille else self.taille
+        if i==0 and j==0:
+            return self.sommet[1]
+        elif i==taille-1 and j==taille-1:
+            return -1*self.sommet[1]
+        else:
+            try:
+                return self.sommet[1]
+            except:
+                pass
+
+    def supprime_frere(self, ind):
+        """
+        Cette methode indique les indices d'hexagones à ne pas prendre comme frere
+        """
+        self.indices_frere_ignores.append(ind)
+
+    def freres(self):
+        """
+        Cette methode retourne la liste des indices des hexagones consideres comme freres
+        """
+        freres = []
+        i, j = self.indice
+        for ind in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
+            if not ind in self.indices_frere_ignores:
+                freres.append(ind)
+        return freres
+
+    def indice_self(self):
+        return self.indice
+
 
 class HexBoard:
 
@@ -81,12 +140,12 @@ class HexBoard:
         self.hexagones = [[] for i in range(self.taille)]
         for i in range(self.taille):
             hexagones[i].append(sommet)
-            self.hexagones[i].append(HexagonesBoard(rayon=self.rayon_sommet, centre=sommet))
+            self.hexagones[i].append(HexagonesBoard(rayon=self.rayon_sommet, taille_grille=self.taille, centre=sommet, indice=(i,0)))
             for j in range(1,self.taille):
                 h = hexagones[i][-1]
                 h = h[0]+ 2*self.rayon_sommet, h[1]
                 hexagones[i].append(h)
-                self.hexagones[i].append(HexagonesBoard(rayon=self.rayon_sommet, centre=h))
+                self.hexagones[i].append(HexagonesBoard(rayon=self.rayon_sommet, taille_grille=self.taille, centre=h, indice=(i,j)))
             sommet = sommet[0]+self.rayon_sommet, sommet[1]+(3/2)*((4/3)**(1/2))*self.rayon_sommet
         return hexagones
 
@@ -105,8 +164,7 @@ class HexBoard:
     
     def trouver_chemin(self, joueur, indice):
         #Recherche d'un chemin à partir des coordonnées d'un point
-        liste_s = set()
-        liste_s = self.recherche_sommets(indice, joueur, liste_s, None)
+        liste_s = self.recherche_sommets(indice, joueur)
         if len(liste_s)==2:
             self.etat = 0
             return True
@@ -164,35 +222,31 @@ class HexBoard:
         if -1*joueur in t_sommet:
             return -1*joueur    
 
-    def est_sommet(self, indice):
-        """
-        Cette methode evalue si deux indices correspondent à celles d'un sommet
-        """
-        i, j = indice[0], indice[1]
-        return i==0 or j==0 or i==self.taille-1 or j==self.taille-1
-
-    def recherche_sommets(self, id_courant, joueur, liste_sommet, id_exclut):
+    def recherche_sommets(self, id_courant, joueur):
         """
         Cette methode recherche les sommets à partir d'une position de facon recursive
         """
         i, j = id_courant[0], id_courant[1]
-        if self.hexagones[i][j].couleur()==joueur:
-            sommet = self.est_sommet_de(id_courant, joueur)
-            if sommet[0] :
-                sommet = sommet[1]
-                if not (sommet in liste_sommet):
-                    print(sommet)
-                    liste_sommet.add(sommet)
-                    if len(liste_sommet)==2:
-                        return liste_sommet
-            for indice in [(i+1, j), (i-1, j), (i, j+1), (i, j-1), (i+1, j+1), (i-1, j-1)]:
-                if indice != id_exclut and self.indice_valide(indice):
-                    if self.hexagones[indice[0]][indice[1]].couleur()==joueur:
-                        liste_s = self.recherche_sommets(indice, joueur, liste_sommet, id_courant)
-                        print("Recursion----------")
-                        if len(liste_sommet) < len(liste_s):
-                            liste_sommet = liste_s
-            return liste_sommet
+        liste_hex = [self.hexagones[i][j]]
+        liste_sommet = []
+        while len(liste_hex)>0 and len(liste_sommet)<2:
+            print("passage")
+            h = liste_hex[0]
+            print(h.indice_self())
+            if h.est_sommet_joueur(joueur):
+                sommet = h.couleur_sommet()
+                print(sommet)
+                if not sommet in liste_sommet:
+                    liste_sommet.append(sommet)
+            liste_hex = liste_hex[1:]
+            for frere in h.freres():
+                if self.indice_valide(frere):
+                    i,j = frere
+                    ind = h.indice_self()
+                    h_frere = self.hexagones[i][j]
+                    if h_frere.couleur()==h.couleur():
+                        h_frere.supprime_frere(ind)
+                        liste_hex.append(h_frere)
         return liste_sommet
 
     def val_joueur(self, joueur):
