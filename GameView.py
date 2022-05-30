@@ -1,5 +1,5 @@
 from math import cos, sin, radians
-from tkinter import Tk, Canvas
+from tkinter import Tk, Canvas, Frame, Button, Label
 import os
 
 from GameBoard import *
@@ -49,7 +49,8 @@ class HexagoneView:
             points.append(Point(centre.x+direction[0], centre.y+direction[1]))
             angle += 60
         self.points = points
-        self.trace = self.points[0].tracerHexagone(self.points[1],self.points[2],self.points[3],self.points[4],self.points[5],canvas)
+        self.trace = self.points[0].tracerHexagone(self.points[1],self.points[2],
+            self.points[3],self.points[4],self.points[5],canvas)
         # cree un cercle qui s'affiche quand l'Hexqagone est survole
         self.centre.tracerCercle(self.rayon_cercle,'',canvas,'#ddd')
 
@@ -69,6 +70,9 @@ class HexagoneView:
         self.points[3].tracer_ligne(self.points[4], couleur, canvas)
         self.points[4].tracer_ligne(self.points[5], couleur, canvas)
 
+    def taille_self(self):
+        return self.rayon_cercle*3
+
 
 class HexView:
 
@@ -82,6 +86,9 @@ class HexView:
         self.joueur2 = "red"
         self.joueur_arriere = None
         self.joueur_courant = self.joueur1
+        self.fenetreMenu = None
+        self.fenetreVictoire = None
+        self.fenetreMain = None
         self.construire_grille()
 
     def construire_grille(self):
@@ -112,11 +119,6 @@ class HexView:
     #Affichage de la grille
     def demmarrage(self):
         #initialisation du joueur ia ou random
-        ja = self.joueur2
-        self.joueur_arriere = JoueurIa("Henri", 
-            self.hexboard, 
-            self.taille, 
-            couleur=self.interface_joueur_couleur(ja))
         self.canvas.bind("<Button-1>",self.jouer_clic)
 
     def jouer_clic(self, event):
@@ -139,7 +141,10 @@ class HexView:
         trouver = self.hexboard.trouver_chemin(joueur, ind)
         self.passer_la_main()
         if trouver :
-            print(f"Le joueur {joueur} a gagné")
+            if self.joueur_arriere:
+                self.victoire("Vous")
+            else:
+                self.victoire(f"Le joueur : {self.interface_couleur_joueur(joueur)}")
 
     def interface_joueur_couleur(self, couleur):
         return 1 if couleur==self.joueur1 else 2 
@@ -162,18 +167,63 @@ class HexView:
         couleur = self.interface_couleur_joueur(joueur)
         self.hexagones[i][j].colorier(couleur, self.canvas)
 
+    def init_joueur_random(self):
+        ja = self.joueur2
+        self.joueur_arriere = JoueurRandom("Joueur Random", 
+            self.hexboard,
+            self.taille, 
+            couleur=self.interface_joueur_couleur(ja))
+        self.fenetreMenu.quit()
+        self.fenetreMenu.destroy()
+        self.commencer()
+
+    def init_joueur_ia(self):
+        ja = self.joueur2
+        self.joueur_arriere = JoueurIa("Joueur Ia", 
+            self.hexboard, 
+            self.taille, 
+            couleur=self.interface_joueur_couleur(ja))
+        self.fenetreMenu.destroy()
+        self.commencer()
+
+    def menu(self):
+        self.fenetreMenu = Tk(className='Choisir le type joueur avec lequel jouer')
+        self.fenetreMenu.resizable(width=False, height=False)
+        self.fenetreMenu.geometry('320x200+700+300')
+        brandom = Button(self.fenetreMenu, text="Joueur Random",
+            command=self.init_joueur_random)
+        bia = Button(self.fenetreMenu, text="Joueur Ia", 
+            command=self.init_joueur_ia)
+        brandom.pack()
+        bia.pack()
+        self.fenetreMenu.mainloop()
+
+    def commencer(self):
+        self.fenetreMain = Tk(className=f'Vous jouez contre : {self.joueur_arriere.getName()}')
+        taille_unit = self.hexagones[0][0].taille_self()
+        self.canvas = Canvas(self.fenetreMain, width=self.taille*taille_unit, height=(self.taille/(1.5))*taille_unit, bg ='ivory')
+        self.canvas.grid()
+        self.afficher_grille()
+        self.demmarrage()
+        self.fenetreMain.mainloop()
+
+    def victoire(self, victorieux):
+        self.fenetreVictoire = Tk(className="Gagnant")
+        label_victoire = Label(self.fenetreVictoire, text=f"Le gagnant est {victorieux}")
+        b_recommencer = Button(self.fenetreVictoire, text="Recommencer", command=self.recommencer)
+        label_victoire.pack()
+        b_recommencer.pack()
+
+    def recommencer(self):
+        if self.fenetreMain:
+            self.fenetreMain.destroy()
+        if self.fenetreVictoire:
+            self.fenetreVictoire.destroy()
+        self.__init__()
+        self.menu()
+
 
 if __name__=="__main__":
-    fen = Tk()
-    canvas = Canvas(fen, width=850, height=550, bg ='ivory')
-    h1 = HexView(canvas=canvas)
-    h1.afficher_grille()
-    h1.demmarrage()
+    h1 = HexView()
+    h1.menu()
     
-    canvas.grid()
-    fen.mainloop()
-
-
-
-
-

@@ -25,7 +25,7 @@ class Joueur:
 
     def jouer(self, ind):
         time.sleep(0.4)
-        self.hexboard.colorier_hex_arriere(ind, self.couleur)
+        self.hexboard.colorier_hex_arriere(ind, self.couleur, self.getName())
         try:
             self.__free.remove(self.hexboard.dernier_coup_jouer())
         except:

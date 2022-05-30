@@ -1,3 +1,4 @@
+
 class HexagonesBoard:
 
     def __init__(self, etat_couleur=None, taille_grille=14, rayon=30, centre=(100, 100), indice=(0,0)):
@@ -180,8 +181,6 @@ class HexBoard:
     def trouver_chemin(self, joueur, indice):
         #Recherche d'un chemin à partir des coordonnées d'un point
         liste_s = self.recherche_sommets(indice, joueur)
-        print(liste_s)
-        print(indice)
         if len(liste_s)==2:
             self.etat = 0
             return True
@@ -252,7 +251,7 @@ class HexBoard:
         #cette methode permet d'acceder au dernier coup joué par le joueur
         return self.dernier_coup
 
-    def colorier_hex_arriere(self, ind, couleur):
+    def colorier_hex_arriere(self, ind, couleur, nom):
         """
         Interface de jeu pour le joueur arriere plan : Random ou Ia 
         """
@@ -263,6 +262,5 @@ class HexBoard:
             trouver = self.trouver_chemin(couleur, ind)
             self.changer_token()
             if trouver:
-                print(f"Le joueur {couleur} a gagné")
-
+                self.hexview.victoire(nom)
 
